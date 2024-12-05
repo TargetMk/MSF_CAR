@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/filter.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>MSFOCB_CAR</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
+        <script src="data/CAR_Geology_0.js"></script>
+        <script src="data/CAR_Towns_2.js"></script>
+        <script src="data/Admin_CAR_3.js"></script>
+        <script src="data/CAR_Roads_4.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ff0004',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ff0004',
+                fillOpacity: 1
+              });
+            }
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[3.5736794914271623,15.759493560963335],[8.392512301653174,26.90243352781456]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var abstract = new L.Control({'position':'bottomleft'});
+        abstract.onAdd = function (map) {
+            this._div = L.DomUtil.create('div',
+            'leaflet-control abstract');
+            this._div.id = 'abstract'
+
+                abstract.show();
+                return this._div;
+            };
+            abstract.show = function () {
+                this._div.classList.remove("abstract");
+                this._div.classList.add("abstractUncollapsed");
+                this._div.innerHTML = 'This is a web map for MSFOCB_CAR showing Geophysical works for Borehole Drilling Project.<br />';
+        };
+        abstract.addTo(map);
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        function pop_CAR_Geology_0(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">CAR_GEOLOGY</th>\
+                        <td>' + (feature.properties['CARGLG'] !== null ? autolinker.link(feature.properties['CARGLG'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">SYMBOL</th>\
+                        <td>' + (feature.properties['CARHGComb'] !== null ? autolinker.link(feature.properties['CARHGComb'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_CAR_Geology_0_0(feature) {
+            switch(String(feature.properties['CARHGComb'])) {
+                case 'B-L/M':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(60,75,211,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'CSFK-H':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(82,178,208,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'CSIF-M':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(196,230,71,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'CSIF-M/H':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(89,219,72,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'I-L':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(209,84,180,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'n/a':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(117,211,170,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'U-H':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(210,160,95,1.0)',
+                interactive: true,
+            }
+                    break;
+                case 'U-L/H':
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(226,134,143,1.0)',
+                interactive: true,
+            }
+                    break;
+                default:
+                    return {
+                pane: 'pane_CAR_Geology_0',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(139,23,227,1.0)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_CAR_Geology_0');
+        map.getPane('pane_CAR_Geology_0').style.zIndex = 400;
+        map.getPane('pane_CAR_Geology_0').style['mix-blend-mode'] = 'normal';
+        var layer_CAR_Geology_0 = new L.geoJson(json_CAR_Geology_0, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_CAR_Geology_0',
+            layerName: 'layer_CAR_Geology_0',
+            pane: 'pane_CAR_Geology_0',
+            onEachFeature: pop_CAR_Geology_0,
+            style: style_CAR_Geology_0_0,
+        });
+        bounds_group.addLayer(layer_CAR_Geology_0);
+        map.createPane('pane_GoogleTerrain_1');
+        map.getPane('pane_GoogleTerrain_1').style.zIndex = 401;
+        var layer_GoogleTerrain_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleTerrain_1',
+            opacity: 1.0,
+            attribution: '<a href="https://www.google.at/permissions/geoguidelines/attr-guide.html">Map data ©2015 Google</a>',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 20
+        });
+        layer_GoogleTerrain_1;
+        function pop_CAR_Towns_2(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">NAME</th>\
+                        <td>' + (feature.properties['NAME'] !== null ? autolinker.link(feature.properties['NAME'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">PLACE</th>\
+                        <td>' + (feature.properties['PLACE'] !== null ? autolinker.link(feature.properties['PLACE'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_CAR_Towns_2_0() {
+            return {
+                pane: 'pane_CAR_Towns_2',
+                radius: 4.8,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(213,60,78,1.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_CAR_Towns_2');
+        map.getPane('pane_CAR_Towns_2').style.zIndex = 402;
+        map.getPane('pane_CAR_Towns_2').style['mix-blend-mode'] = 'normal';
+        var layer_CAR_Towns_2 = new L.geoJson(json_CAR_Towns_2, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_CAR_Towns_2',
+            layerName: 'layer_CAR_Towns_2',
+            pane: 'pane_CAR_Towns_2',
+            onEachFeature: pop_CAR_Towns_2,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_CAR_Towns_2_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_CAR_Towns_2);
+        map.addLayer(layer_CAR_Towns_2);
+        function pop_Admin_CAR_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">OBJECTID</th>\
+                        <td>' + (feature.properties['OBJECTID'] !== null ? autolinker.link(feature.properties['OBJECTID'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Name</th>\
+                        <td>' + (feature.properties['admin0Name'] !== null ? autolinker.link(feature.properties['admin0Name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Shape_Leng</th>\
+                        <td>' + (feature.properties['Shape_Leng'] !== null ? autolinker.link(feature.properties['Shape_Leng'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Area'] !== null ? autolinker.link(feature.properties['Shape_Area'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Admin_CAR_3_0() {
+            return {
+                pane: 'pane_Admin_CAR_3',
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(190,207,80,0.0)',
+                interactive: true,
+            }
+        }
+        map.createPane('pane_Admin_CAR_3');
+        map.getPane('pane_Admin_CAR_3').style.zIndex = 403;
+        map.getPane('pane_Admin_CAR_3').style['mix-blend-mode'] = 'normal';
+        var layer_Admin_CAR_3 = new L.geoJson(json_Admin_CAR_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Admin_CAR_3',
+            layerName: 'layer_Admin_CAR_3',
+            pane: 'pane_Admin_CAR_3',
+            onEachFeature: pop_Admin_CAR_3,
+            style: style_Admin_CAR_3_0,
+        });
+        bounds_group.addLayer(layer_Admin_CAR_3);
+        map.addLayer(layer_Admin_CAR_3);
+        function pop_CAR_Roads_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name'] !== null ? autolinker.link(feature.properties['name'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name_en'] !== null ? autolinker.link(feature.properties['name_en'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['highway'] !== null ? autolinker.link(feature.properties['highway'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['surface'] !== null ? autolinker.link(feature.properties['surface'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['smoothness'] !== null ? autolinker.link(feature.properties['smoothness'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['width'] !== null ? autolinker.link(feature.properties['width'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['lanes'] !== null ? autolinker.link(feature.properties['lanes'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['oneway'] !== null ? autolinker.link(feature.properties['oneway'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['bridge'] !== null ? autolinker.link(feature.properties['bridge'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td class="visible-with-data" id="layer"colspan="2"><strong>layer</strong><br />' + (feature.properties['layer'] !== null ? autolinker.link(feature.properties['layer'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['source'] !== null ? autolinker.link(feature.properties['source'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name_fr'] !== null ? autolinker.link(feature.properties['name_fr'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['name_sg'] !== null ? autolinker.link(feature.properties['name_sg'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['osm_id'] !== null ? autolinker.link(feature.properties['osm_id'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['osm_type'] !== null ? autolinker.link(feature.properties['osm_type'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_CAR_Roads_4_0() {
+            return {
+                pane: 'pane_CAR_Roads_4',
+                opacity: 1,
+                color: 'rgba(243,166,178,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_CAR_Roads_4');
+        map.getPane('pane_CAR_Roads_4').style.zIndex = 404;
+        map.getPane('pane_CAR_Roads_4').style['mix-blend-mode'] = 'normal';
+        var layer_CAR_Roads_4 = new L.geoJson(json_CAR_Roads_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_CAR_Roads_4',
+            layerName: 'layer_CAR_Roads_4',
+            pane: 'pane_CAR_Roads_4',
+            onEachFeature: pop_CAR_Roads_4,
+            style: style_CAR_Roads_4_0,
+        });
+        bounds_group.addLayer(layer_CAR_Roads_4);
+        map.addLayer(layer_CAR_Roads_4);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        var overlaysTree = [
+            {label: '<img src="legend/CAR_Roads_4.png" /> CAR_Roads', layer: layer_CAR_Roads_4},
+            {label: '<img src="legend/Admin_CAR_3.png" /> Admin_CAR', layer: layer_Admin_CAR_3},
+            {label: '<img src="legend/CAR_Towns_2.png" /> CAR_Towns', layer: layer_CAR_Towns_2},
+            {label: "Google Terrain", layer: layer_GoogleTerrain_1},
+            {label: 'CAR_Geology<br /><table><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_BLM0.png" /></td><td>B-L/M</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_CSFKH1.png" /></td><td>CSFK-H</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_CSIFM2.png" /></td><td>CSIF-M</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_CSIFMH3.png" /></td><td>CSIF-M/H</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_IL4.png" /></td><td>I-L</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_na5.png" /></td><td>n/a</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_UH6.png" /></td><td>U-H</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_ULH7.png" /></td><td>U-L/H</td></tr><tr><td style="text-align: center;"><img src="legend/CAR_Geology_0_8.png" /></td><td></td></tr></table>', layer: layer_CAR_Geology_0},]
+        var lay = L.control.layers.tree(null, overlaysTree,{
+            //namedToggle: true,
+            //selectorBack: false,
+            //closedSymbol: '&#8862; &#x1f5c0;',
+            //openedSymbol: '&#8863; &#x1f5c1;',
+            //collapseAll: 'Collapse all',
+            //expandAll: 'Expand all',
+            collapsed: true,
+        });
+        lay.addTo(map);
+        setBounds();
+        var i = 0;
+        layer_CAR_Towns_2.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['NAME'] !== null?String('<div style="color: #323232; font-size: 10pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['NAME']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_CAR_Towns_2'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_Admin_CAR_3.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['admin0Name'] !== null?String('<div style="color: #323232; font-size: 10pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['admin0Name']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Admin_CAR_3'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var mapDiv = document.getElementById('map');
+        var row = document.createElement('div');
+        row.className="row";
+        row.id="all";
+        row.style.height = "100%";
+        var col1 = document.createElement('div');
+        col1.className="col9";
+        col1.id = "mapWindow";
+        col1.style.height = "99%";
+        col1.style.width = "80%";
+        col1.style.display = "inline-block";
+        var col2 = document.createElement('div');
+        col2.className="col3";
+        col2.id = "menu";
+        col2.style.display = "inline-block";
+        mapDiv.parentNode.insertBefore(row, mapDiv);
+        document.getElementById("all").appendChild(col1);
+        document.getElementById("all").appendChild(col2);
+        col1.appendChild(mapDiv)
+        var Filters = {"CARHGComb": "str","CARGLG": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+        var i = 0;
+        layer_CAR_Towns_2.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['NAME'] !== null?String('<div style="color: #323232; font-size: 10pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['NAME']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_CAR_Towns_2'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        var i = 0;
+        layer_Admin_CAR_3.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['admin0Name'] !== null?String('<div style="color: #323232; font-size: 10pt; font-family: \'Open Sans\', sans-serif;">' + layer.feature.properties['admin0Name']) + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_Admin_CAR_3'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_CARHGComb = document.createElement('div');
+            div_CARHGComb.id = "div_CARHGComb";
+            div_CARHGComb.className= "filterselect";
+            document.getElementById("menu").appendChild(div_CARHGComb);
+            sel_CARHGComb = document.createElement('select');
+            sel_CARHGComb.multiple = true;
+            sel_CARHGComb.size = 8;
+            sel_CARHGComb.id = "sel_CARHGComb";
+            var CARHGComb_options_str = "<option value='' unselected></option>";
+            sel_CARHGComb.onchange = function(){filterFunc()};
+            CARHGComb_options_str  += '<option value="B-L/M">B-L/M</option>';
+            CARHGComb_options_str  += '<option value="CSFK-H">CSFK-H</option>';
+            CARHGComb_options_str  += '<option value="CSIF-M">CSIF-M</option>';
+            CARHGComb_options_str  += '<option value="CSIF-M/H">CSIF-M/H</option>';
+            CARHGComb_options_str  += '<option value="I-L">I-L</option>';
+            CARHGComb_options_str  += '<option value="U-H">U-H</option>';
+            CARHGComb_options_str  += '<option value="U-L/H">U-L/H</option>';
+            CARHGComb_options_str  += '<option value="n/a">n/a</option>';
+            sel_CARHGComb.innerHTML = CARHGComb_options_str;
+            div_CARHGComb.appendChild(sel_CARHGComb);
+            var lab_CARHGComb = document.createElement('div');
+            lab_CARHGComb.innerHTML = 'CARHGComb';
+            lab_CARHGComb.className = 'filterlabel';
+            div_CARHGComb.appendChild(lab_CARHGComb);
+            var reset_CARHGComb = document.createElement('div');
+            reset_CARHGComb.innerHTML = 'clear filter';
+            reset_CARHGComb.className = 'filterlabel';
+            reset_CARHGComb.onclick = function() {
+                var options = document.getElementById("sel_CARHGComb").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_CARHGComb.appendChild(reset_CARHGComb);
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_CARGLG = document.createElement('div');
+            div_CARGLG.id = "div_CARGLG";
+            div_CARGLG.className= "filterselect";
+            document.getElementById("menu").appendChild(div_CARGLG);
+            sel_CARGLG = document.createElement('select');
+            sel_CARGLG.multiple = true;
+            sel_CARGLG.size = 9;
+            sel_CARGLG.id = "sel_CARGLG";
+            var CARGLG_options_str = "<option value='' unselected></option>";
+            sel_CARGLG.onchange = function(){filterFunc()};
+            CARGLG_options_str  += '<option value="Igneous intrusive">Igneous intrusive</option>';
+            CARGLG_options_str  += '<option value="Precambrian Basement">Precambrian Basement</option>';
+            CARGLG_options_str  += '<option value="Quaternary">Quaternary</option>';
+            CARGLG_options_str  += '<option value="Quaternary-Tertiary - Lake Chad basin">Quaternary-Tertiary - Lake Chad basin</option>';
+            CARGLG_options_str  += '<option value="Sedimentary - Cretaceous">Sedimentary - Cretaceous</option>';
+            CARGLG_options_str  += '<option value="Sedimentary - Palaeozoic">Sedimentary - Palaeozoic</option>';
+            CARGLG_options_str  += '<option value="Sedimentary - Tertiary">Sedimentary - Tertiary</option>';
+            CARGLG_options_str  += '<option value="Surface water">Surface water</option>';
+            CARGLG_options_str  += '<option value="Upper Precambrian - karstic">Upper Precambrian - karstic</option>';
+            sel_CARGLG.innerHTML = CARGLG_options_str;
+            div_CARGLG.appendChild(sel_CARGLG);
+            var lab_CARGLG = document.createElement('div');
+            lab_CARGLG.innerHTML = 'CARGLG';
+            lab_CARGLG.className = 'filterlabel';
+            div_CARGLG.appendChild(lab_CARGLG);
+            var reset_CARGLG = document.createElement('div');
+            reset_CARGLG.innerHTML = 'clear filter';
+            reset_CARGLG.className = 'filterlabel';
+            reset_CARGLG.onclick = function() {
+                var options = document.getElementById("sel_CARGLG").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_CARGLG.appendChild(reset_CARGLG);
+        resetLabels([layer_CAR_Towns_2,layer_Admin_CAR_3]);
+        map.on("zoomend", function(){
+            resetLabels([layer_CAR_Towns_2,layer_Admin_CAR_3]);
+        });
+        map.on("layeradd", function(){
+            resetLabels([layer_CAR_Towns_2,layer_Admin_CAR_3]);
+        });
+        map.on("layerremove", function(){
+            resetLabels([layer_CAR_Towns_2,layer_Admin_CAR_3]);
+        });
+        </script>
+    </body>
+</html>
